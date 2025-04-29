@@ -19,11 +19,11 @@ Ecco cosa ci prefiggiamo di fare:
 * 🧠 Addestrare i nostri tre modelli di regressione: Regressione Lineare, Ridge e Lasso.
 * 📈 Valutare le performance di ogni modello con metriche di regressione appropriate (R2 Score, MSE, RMSE, MAE).
 
-## 📁 Struttura del Progetto (Esempio)
+## 📁 Struttura del Progetto
 
 Per mantenere tutto ordinato 🧹, il codice è suddiviso in file con responsabilità specifiche:
 
-* 📄 `main_script.py` (o `run.py`): La mente dietro l'operazione. Carica i dati, chiama le funzioni di pre-elaborazione e infine addestra/valuta i modelli.
+* 📄 `house.py`: La mente dietro l'operazione. Carica i dati, chiama le funzioni di pre-elaborazione e infine addestra/valuta i modelli.
 * 📄 `preprocess.py`: Il pulitore e selezionatore VIF. Contiene la funzione `preprocess(df)` per la pulizia iniziale e la gestione iterativa del VIF.
 * 📄 `features.py`: Lo standardizzatore e divisore. Contiene la funzione `feature(X_selected, y)` per lo scaling e lo split train/test sui dati già filtrati.
 
