@@ -1,4 +1,4 @@
-# ✨ Previsione Prezzo Case 🏡
+# House's Prices Project 🏡
 
 Questo progetto è una pipeline di Machine Learning end-to-end per prevedere il prezzo delle case basandosi su un dataset pubblico. Il nostro viaggio include la preparazione accurata dei dati, con un focus speciale sulla **gestione della multicollinearità** 📈 tra le feature utilizzando un metodo iterativo basato sul Variance Inflation Factor (VIF). Alla fine, confronteremo le performance di tre popolari modelli di regressione lineare: Regressione Lineare standard, Ridge e Lasso 📊.
 
