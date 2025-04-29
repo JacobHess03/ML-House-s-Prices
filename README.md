@@ -64,17 +64,7 @@ Segui questi semplici passi:
 ```
     python main_script.py
 ```
-Osserva il terminale per vedere i passaggi di pre-elaborazione e i risultati dei modelli! ✨
-🔧 Metodologia di Pre-elaborazione Dati
 
-Il processo è stato attentamente pensato 🤔:
-
-  Caricamento & Pulizia: I dati vengono caricati e i duplicati rimossi ✅.
-  Split Iniziale X/y: Separiamo le feature dal prezzo target 🎯, rimuovendo colonne non utili.
-  Analisi Correlazione: Creiamo una matrice di correlazione visuale (heatmap 🔥) per capire le relazioni tra le feature numeriche.
-  Rimozione Iterativa VIF: Usiamo un loop per identificare e rimuovere le feature con VIF > soglia (default 10) 🔍. Le feature protette ('bathrooms', 'bedrooms', 'floors') vengono saltate in questo processo 🛡️, permettendo al ciclo di continuare a valutare le altre feature.
-  Standardizzazione: Le feature selezionate vengono standardizzate (ridimensionate con media 0 e deviazione standard 1) 📏, cruciale per Ridge e Lasso.
-  Split Train/Test: I dati standardizzati vengono divisi in set di training e test (80/20) ✂️.
 
 📊 Valutazione dei Modelli
 
