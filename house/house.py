@@ -27,7 +27,7 @@ from features import feature     # Assicurati che questo file esista e contenga 
 
 
 # Assicurati che il file sia nella stessa directory dello script o specifica il percorso completo
-file_path = r'house_data.csv' # Ho accorciato il percorso per comodità, adattalo se necessario
+file_path = 'house/house_data.csv' # Ho accorciato il percorso per comodità, adattalo se necessario
 try:
     df = pd.read_csv(file_path)
 except FileNotFoundError:
