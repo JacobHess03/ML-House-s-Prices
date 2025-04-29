@@ -21,7 +21,7 @@ Ecco cosa ci prefiggiamo di fare:
 
 ## 📁 Struttura del Progetto
 
-Per mantenere tutto ordinato 🧹, il codice è suddiviso in file con responsabilità specifiche:
+Per mantenere tutto ordinato, il codice è suddiviso in file con responsabilità specifiche:
 
 * 📄 `house.py`: La mente dietro l'operazione. Carica i dati, chiama le funzioni di pre-elaborazione e infine addestra/valuta i modelli.
 * 📄 `preprocess.py`: Il pulitore e selezionatore VIF. Contiene la funzione `preprocess(df)` per la pulizia iniziale e la gestione iterativa del VIF.
@@ -67,7 +67,7 @@ Segui questi semplici passi:
 
 📊 Valutazione dei Modelli
 
-Ogni modello viene addestrato sul set di training standardizzato e valutato sul set di test utilizzando le metriche fondamentali per la regressione ✅:
+Ogni modello viene addestrato sul set di training standardizzato e valutato sul set di test utilizzando le metriche fondamentali per la regressione:
 
   R2 Score (quanto del prezzo è spiegato dal modello)
   Mean Squared Error (MSE)
