@@ -1,270 +1,213 @@
-
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
-from sklearn.preprocessing import StandardScaler, PolynomialFeatures
-from sklearn.feature_selection import SelectKBest, f_regression, RFE
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingRegressor
-# Importiamo le metriche per la regressione
-from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+
+from sklearn.metrics import r2_score, mean_squared_error
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-from sklearn.preprocessing import StandardScaler
 
-# Assumiamo che la funzione 'preprocess' gestisca il caricamento dati,
-# pulizia iniziale e split iniziale in X e y (senza VIF o scaling).
-# Assumiamo che la funzione 'feature' prenda X e y, esegua la selezione
-# VIF iterativa, la standardizzazione e lo split train/test,
-# restituendo i dati pronti per l'addestramento.
-#
-# Importantissimo: Assicurati che la tua funzione feature(X, y) restituisca
-# X_train, X_test, y_train, y_test che sono stati:
-# 1. Feature selezionate (es. con VIF iterativo)
-# 2. Scalati (es. con StandardScaler)
-# Altrimenti, i modelli Ridge e Lasso non funzioneranno correttamente.
-from preprocess import preprocess # Assicurati che questo file esista e contenga preprocess
-from features import feature     # Assicurati che questo file esista e contenga feature
+import xgboost as xgb
+from xgboost import XGBRegressor
 
+from preprocess import preprocess
+from features import feature
 
-# Assicurati che il file sia nella stessa directory dello script o specifica il percorso completo
-file_path = r'29_aprile_2025/house/house_data.csv' # Ho accorciato il percorso per comodità, adattalo se necessario
+# ---------------------------------------------------------------------------
+# 1) Caricamento dati e preprocessing iniziale
+# ---------------------------------------------------------------------------
+file_path = r'house/house_data.csv'
 try:
     df = pd.read_csv(file_path)
 except FileNotFoundError:
-    print(f"Errore: Il file non trovato a questo percorso: {file_path}")
-    # Esci o gestisci l'errore in modo appropriato
+    print(f"Errore: file non trovato a questo percorso: {file_path}")
     exit()
 
-# Passaggio 1: Preprocessing iniziale (caricamento, pulizia, split X/y iniziale)
-# La tua funzione preprocess(df) dovrebbe restituire X (dataframe) e y (series)
-print("========================= Preprocessing Iniziale tramite funzione preprocess() =========================")
-X_initial, y_initial = preprocess(df) # Chiamiamo preprocess per l'input iniziale
-print(f"Shape X_initial ottenuta da preprocess(): {X_initial.shape}")
-print(f"Shape y_initial ottenuta da preprocess(): {y_initial.shape}")
-print("========================= Fine Preprocessing Iniziale =========================")
+print("========================= Preprocessing Iniziale =========================")
+X_initial, y_initial = preprocess(df)
+print(f"X_initial shape: {X_initial.shape}")
+print(f"y_initial shape: {y_initial.shape}")
 
-
-# Passaggio 2: Feature Engineering, Selezione VIF, Standardizzazione e Split Train/Test
-# La tua funzione feature(X, y) dovrebbe prendere X e y, fare VIF, scaling e split
-print("\n========================= Feature Engineering e Preparazione Dati tramite funzione feature() =========================")
-# Passiamo X_initial e y_initial alla funzione feature
+# ---------------------------------------------------------------------------
+# 2) Feature engineering, VIF, scaling e split
+# ---------------------------------------------------------------------------
+print("\n================ Feature Engineering & Split =================")
 X_train, X_test, y_train, y_test = feature(X_initial, y_initial)
-print(f"Shape X_train ottenuta dalla funzione feature(): {X_train.shape}")
-print(f"Shape X_test ottenuta dalla funzione feature(): {X_test.shape}")
-print(f"Shape y_train ottenuta dalla funzione feature(): {y_train.shape}")
-print(f"Shape y_test ottenuta dalla funzione feature(): {y_test.shape}")
-print("========================= Fine Feature Engineering e Preparazione Dati =========================")
-
-
-# =============================================================================
-# Addestramento e Valutazione dei Modelli di Regressione
-# =============================================================================
-print("\n========================= Addestramento e Valutazione Modelli di Regressione =========================")
-
-# 1. Modello di Regressione Lineare Standard
-print("\n--- Modello: Linear Regression ---")
-linear_model = LinearRegression()
-# Addestra il modello sui dati di training (presumibilmente scalati e filtrati dalla funzione feature)
-linear_model.fit(X_train, y_train)
-# Fa previsioni sul test set (presumibilmente scalato e filtrato dalla funzione feature)
-y_pred_linear = linear_model.predict(X_test)
-
-# Calcola le metriche di regressione
-r2_linear = r2_score(y_test, y_pred_linear)
-
-
-# Stampa le metriche
-print(f"R2 Score (Linear Regression): {r2_linear:.4f}")
-
-# --- Linear Regression ---
-mse_linear = mean_squared_error(y_test, y_pred_linear)  
-rmse_linear = np.sqrt(mse_linear)
-print(f"RMSE (Linear Regression): {rmse_linear:.4f}")
-
-# 1. Normalizzazione su range
-y_range = y_test.max() - y_test.min()
-nrmse_range = rmse_linear / y_range
-print(f"NRMSE rispetto al range: {nrmse_range:.4f}")
-
-# 2. Normalizzazione su media
-y_mean = y_test.mean()
-nrmse_mean = rmse_linear / y_mean
-print(f"NRMSE rispetto alla media (CV RMSE): {nrmse_mean:.4f}")
-
-# 2. Modello Ridge (Regolarizzazione L2)
-print("\n--- Modello: Ridge ---")
-# alpha è il parametro di regolarizzazione.
-# Un valore comune di partenza è 1.0. Andrebbe ottimizzato.
-ridge_model = Ridge(alpha=1.0)
-# Addestra il modello sui dati di training scalati
-ridge_model.fit(X_train, y_train)
-# Fa previsioni sul test set scalato
-y_pred_ridge = ridge_model.predict(X_test)
-
-# Calcola le metriche di regressione
-r2_ridge = r2_score(y_test, y_pred_ridge)
-
-
-# Stampa le metriche
-print(f"R2 Score (Ridge Regression, alpha=1.0): {r2_ridge:.4f}")
+print(f"X_train shape: {X_train.shape}")
+print(f"X_test  shape: {X_test.shape}")
+print(f"y_train shape: {y_train.shape}")
+print(f"y_test  shape: {y_test.shape}")
 
 
 
+# ---------------------------------------------------------------------------
+# 4) Addestramento e valutazione dei modelli di base
+# ---------------------------------------------------------------------------
+print("\n================ Addestramento Modelli =================")
 
+# -- Linear Regression
+print("\n--- Linear Regression ---")
+lin = LinearRegression()
+lin.fit(X_train, y_train)
+y_pred_lin = lin.predict(X_test)
+r2_lin   = r2_score(y_test, y_pred_lin)
+rmse_lin = np.sqrt(mean_squared_error(y_test, y_pred_lin))
+print(f"R² (Linear): {r2_lin:.4f}")
+print(f"RMSE (Linear): {rmse_lin:.2f}")
 
+# -- Ridge Regression
+print("\n--- Ridge Regression (L2) ---")
+ridge = Ridge(alpha=1.0)
+ridge.fit(X_train, y_train)
+y_pred_ridge = ridge.predict(X_test)
+r2_ridge   = r2_score(y_test, y_pred_ridge)
+rmse_ridge = np.sqrt(mean_squared_error(y_test, y_pred_ridge))
+print(f"R² (Ridge): {r2_ridge:.4f}")
+print(f"RMSE (Ridge): {rmse_ridge:.2f}")
 
+# -- Lasso Regression
+print("\n--- Lasso Regression (L1) ---")
+lasso = Lasso(alpha=1.0)
+lasso.fit(X_train, y_train)
+y_pred_lasso = lasso.predict(X_test)
+r2_lasso   = r2_score(y_test, y_pred_lasso)
+rmse_lasso = np.sqrt(mean_squared_error(y_test, y_pred_lasso))
+print(f"R² (Lasso): {r2_lasso:.4f}")
+print(f"RMSE (Lasso): {rmse_lasso:.2f}")
 
-# --- Ridge Regression ---
-mse_ridge = mean_squared_error(y_test, y_pred_ridge)
-rmse_ridge = np.sqrt(mse_ridge)
-print(f"RMSE (Ridge Regression, alpha=1.0): {rmse_ridge:.4f}")
-# 1. Normalizzazione su range
-y_range = y_test.max() - y_test.min()
-nrmse_range = rmse_ridge / y_range
-print(f"NRMSE rispetto al range: {nrmse_range:.4f}")
-
-# 2. Normalizzazione su media
-y_mean = y_test.mean()
-nrmse_mean = rmse_ridge / y_mean
-print(f"NRMSE rispetto alla media (CV RMSE): {nrmse_mean:.4f}")
-
-# 3. Modello Lasso (Regolarizzazione L1)
-print("\n--- Modello: Lasso ---")
-# alpha è il parametro di regolarizzazione.
-# Un valore comune di partenza è 1.0. Andrebbe ottimizzato.
-# Lasso può portare i coefficienti esattamente a zero.
-lasso_model = Lasso(alpha=1.0)
-# Addestra il modello sui dati di training scalati
-lasso_model.fit(X_train, y_train)
-# Fa previsioni sul test set scalato
-y_pred_lasso = lasso_model.predict(X_test)
-
-# Calcola le metriche di regressione
-r2_lasso = r2_score(y_test, y_pred_lasso)
-
-
-# Stampa le metriche
-print(f"R2 Score (Lasso Regression, alpha=1.0): {r2_lasso:.4f}")
-
-# --- Lasso Regression ---
-mse_lasso = mean_squared_error(y_test, y_pred_lasso)
-rmse_lasso = np.sqrt(mse_lasso)
-print(f"RMSE (Lasso Regression, alpha=1.0): {rmse_lasso:.4f}")
-
-# 1. Normalizzazione su range
-y_range = y_test.max() - y_test.min()
-nrmse_range = rmse_lasso / y_range
-print(f"NRMSE rispetto al range: {nrmse_range:.4f}")
-
-# 2. Normalizzazione su media
-y_mean = y_test.mean()
-nrmse_mean = rmse_lasso / y_mean
-print(f"NRMSE rispetto alla media (CV RMSE): {nrmse_mean:.4f}")
-
-
-
-
-
-
-# ESEMPIO (Facoltativo) di come potresti visualizzare i risultati della Regressione con uno Scatter Plot
-print("\n========================= Esempio Scatter Plot Reale vs Predetto (Lineare) =========================")
-plt.figure(figsize=(10, 6))
-# Scatter plot dei valori reali (y_test) vs i valori predetti (y_pred_ridge)
-sns.scatterplot(x=y_test, y=y_pred_linear, alpha=0.5) # alpha per trasparenza se ci sono molti punti
-# Aggiungi una linea diagonale perfetta (dove i valori reali = predetti)
-plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--', lw=2)
-plt.xlabel("Prezzo Reale")
-plt.ylabel("Prezzo Predetto (Lineare)")
-plt.title("Scatter Plot: Prezzo Reale vs Predetto (Modello Regressione Lineare)")
-plt.grid(True)
-plt.show()
-print("========================= Fine Scatter Plot =========================")
-
-
-print("\n========================= Fine Addestramento e Valutazione Modelli =========================")
-
-# ESEMPIO (Facoltativo) di come potresti visualizzare i risultati della Regressione con uno Scatter Plot
-print("\n========================= Esempio Scatter Plot Reale vs Predetto (Ridge) =========================")
-plt.figure(figsize=(10, 6))
-# Scatter plot dei valori reali (y_test) vs i valori predetti (y_pred_ridge)
-sns.scatterplot(x=y_test, y=y_pred_ridge, alpha=0.5) # alpha per trasparenza se ci sono molti punti
-# Aggiungi una linea diagonale perfetta (dove i valori reali = predetti)
-plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--', lw=2)
-plt.xlabel("Prezzo Reale")
-plt.ylabel("Prezzo Predetto (Ridge)")
-plt.title("Scatter Plot: Prezzo Reale vs Predetto (Modello Ridge)")
-plt.grid(True)
-plt.show()
-print("========================= Fine Scatter Plot =========================")
-
-
-
-# ESEMPIO (Facoltativo) di come potresti visualizzare i risultati della Regressione con uno Scatter Plot
-print("\n========================= Esempio Scatter Plot Reale vs Predetto (Lasso) =========================")
-plt.figure(figsize=(10, 6))
-# Scatter plot dei valori reali (y_test) vs i valori predetti (y_pred_ridge)
-sns.scatterplot(x=y_test, y=y_pred_lasso, alpha=0.5) # alpha per trasparenza se ci sono molti punti
-# Aggiungi una linea diagonale perfetta (dove i valori reali = predetti)
-plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--', lw=2)
-plt.xlabel("Prezzo Reale")
-plt.ylabel("Prezzo Predetto (Lasso)")
-plt.title("Scatter Plot: Prezzo Reale vs Predetto (Modello Lasso)")
-plt.grid(True)
-plt.show()
-print("========================= Fine Scatter Plot =========================")
-
-
-
-
-
-
-
-
-
-
-# === 4. Modello: Gradient Boosting Regressor ===
-print("\n--- Modello: Gradient Boosting Regressor ---")
-# Imposta i parametri (puoi cambiare n_estimators, learning_rate, max_depth a piacere)
-gb_model = GradientBoostingRegressor(
+# -- Gradient Boosting Regressor
+print("\n--- Gradient Boosting Regressor ---")
+gb = GradientBoostingRegressor(
     n_estimators=100,
     learning_rate=0.1,
     max_depth=3,
     random_state=73
 )
-# Addestra il modello sui dati di training scalati
-gb_model.fit(X_train, y_train)
-# Fa previsioni sul test set scalato
-y_pred_gb = gb_model.predict(X_test)
+gb.fit(X_train, y_train)
+y_pred_gb = gb.predict(X_test)
+r2_gb   = r2_score(y_test, y_pred_gb)
+rmse_gb = np.sqrt(mean_squared_error(y_test, y_pred_gb))
+print(f"R² (GB): {r2_gb:.4f}")
+print(f"RMSE (GB): {rmse_gb:.2f}")
 
-# Calcola le metriche di regressione
-r2_gb = r2_score(y_test, y_pred_gb)
-mse_gb = mean_squared_error(y_test, y_pred_gb)
-rmse_gb = np.sqrt(mse_gb)
+# ---------------------------------------------------------------------------
+# 5) XGBoost Regressor con grid search manuale su reg_alpha/reg_lambda
+# ---------------------------------------------------------------------------
+print("\n--- XGBoost Regressor: Grid Search su alpha e reg_lambda ---")
 
-# Normalizzazioni
-y_range = y_test.max() - y_test.min()
-nrmse_gb_range = rmse_gb / y_range
-y_mean = y_test.mean()
-nrmse_gb_mean = rmse_gb / y_mean
+# Prepara DMatrix su training (senza .values)
+dtrain = xgb.DMatrix(X_train, label=y_train, missing=np.nan)
 
-# Stampa le metriche
-print(f"R2 Score (GB Regressor): {r2_gb:.4f}")
-print(f"RMSE (GB Regressor): {rmse_gb:.4f}")
-print(f"NRMSE rispetto al range: {nrmse_gb_range:.4f}")
-print(f"NRMSE rispetto alla media (CV RMSE): {nrmse_gb_mean:.4f}")
+# Parametri fissi
+xgb_base_params = {
+    'objective': 'reg:squarederror',
+    'eta':        0.1,
+    'max_depth':  4,
+}
 
-# === Scatter Plot Reale vs Predetto (GB) ===
-print("\n========================= Scatter Plot Reale vs Predetto (GB) =========================")
-plt.figure(figsize=(10, 6))
-sns.scatterplot(x=y_test, y=y_pred_gb, alpha=0.5)
-plt.plot([y_test.min(), y_test.max()],
-         [y_test.min(), y_test.max()],
-         'k--', lw=2)
-plt.xlabel("Prezzo Reale")
-plt.ylabel("Prezzo Predetto (GB Regressor)")
-plt.title("Scatter Plot: Prezzo Reale vs Predetto (Gradient Boosting)")
-plt.grid(True)
-plt.show()
-print("========================= Fine Scatter Plot GB =========================")
+# Griglia
+param_grid = {
+    'alpha':     [0, 0.1, 0.5, 1],
+    'reg_lambda':[0, 0.1, 0.5, 1]
+}
+
+best_rmse = float("inf")
+best_params = {}
+
+for alpha in param_grid['alpha']:
+    for reg_l in param_grid['reg_lambda']:
+        params = xgb_base_params.copy()
+        params['reg_alpha']  = alpha
+        params['reg_lambda'] = reg_l
+
+        cv_results = xgb.cv(
+            params,
+            dtrain,
+            num_boost_round=100,
+            nfold=5,
+            metrics="rmse",
+            early_stopping_rounds=10,
+            seed=42,
+            verbose_eval=False
+        )
+        mean_rmse = cv_results['test-rmse-mean'].min()
+        print(f" alpha={alpha:<4} reg_lambda={reg_l:<4} → RMSE: {mean_rmse:.4f}")
+
+        if mean_rmse < best_rmse:
+            best_rmse   = mean_rmse
+            best_params = {'reg_alpha': alpha, 'reg_lambda': reg_l}
+
+print(f"\nMigliori XGB params: {best_params} → RMSE CV: {best_rmse:.4f}")
+
+# Addestra il modello finale con i parametri ottimali
+xgb_model = XGBRegressor(
+    objective    = 'reg:squarederror',
+    eta          = 0.1,
+    max_depth    = 4,
+    reg_alpha    = best_params['reg_alpha'],
+    reg_lambda   = best_params['reg_lambda'],
+    n_estimators = 100,
+    random_state = 73
+)
+xgb_model.fit(X_train, y_train)
+y_pred_xgb = xgb_model.predict(X_test)
+
+r2_xgb   = r2_score(y_test, y_pred_xgb)
+rmse_xgb = np.sqrt(mean_squared_error(y_test, y_pred_xgb))
+print(f"\nR² (XGBoost): {r2_xgb:.4f}")
+print(f"RMSE (XGBoost): {rmse_xgb:.2f}")
+
+# ---------------------------------------------------------------------------
+# 6) Scatter plot Reale vs Predetto per tutti i modelli
+# ---------------------------------------------------------------------------
+print("\n================ Scatter Plots Reale vs Predetto =================")
+def plot_real_vs_pred(y_true, preds, labels):
+    plt.figure(figsize=(12, 8))
+    for y_pred, lab in zip(preds, labels):
+        sns.scatterplot(x=y_true, y=y_pred, alpha=0.5, label=lab)
+    lims = [y_true.min(), y_true.max()]
+    plt.plot(lims, lims, 'k--', lw=2)
+    plt.xlabel("Prezzo Reale")
+    plt.ylabel("Prezzo Predetto")
+    plt.legend()
+    plt.grid(True)
+    plt.title("Confronto modelli: Reale vs Predetto")
+    plt.show()
+
+plot_real_vs_pred(
+    y_test,
+    [y_pred_lin, y_pred_ridge, y_pred_lasso, y_pred_gb, y_pred_xgb],
+    ["Linear", "Ridge", "Lasso", "GB", "XGBoost"]
+)
+
+print("\n======================= Fine ========================")
+
+
+# -------------------------
+# 6) Calcolo RMSE e NRMSE
+# -------------------------
+print("\n================ Calcolo RMSE e NRMSE =================")
+
+models_preds = {
+    "Linear Regression":        y_pred_lin,
+    "Ridge Regression":         y_pred_ridge,
+    "Lasso Regression":         y_pred_lasso,
+    "Gradient Boosting Regr.":  y_pred_gb,
+    "XGBoost Regressor":        y_pred_xgb
+}
+
+for name, y_pred in models_preds.items():
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    y_range = y_test.max() - y_test.min()
+    nrmse_range = rmse / y_range
+    y_mean = y_test.mean()
+    nrmse_mean = rmse / y_mean
+
+    print(f"\n{name}")
+    print(f"  RMSE:          {rmse:.2f}")
+    print(f"  NRMSE range:   {nrmse_range:.4f}")
+    print(f"  NRMSE mean:    {nrmse_mean:.4f}")
