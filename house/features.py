@@ -1,13 +1,6 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-import seaborn as sns
-from sklearn.linear_model import LinearRegression, Ridge, Lasso
-from sklearn.preprocessing import StandardScaler, PolynomialFeatures
-from sklearn.feature_selection import SelectKBest, f_regression, RFE
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score
-from statsmodels.stats.outliers_influence import variance_inflation_factor
+
 
 
 def feature(X_selected, y):

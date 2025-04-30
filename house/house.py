@@ -4,12 +4,10 @@ import pandas as pd
 import seaborn as sns
 
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
+
 from sklearn.ensemble import GradientBoostingRegressor
 
 from sklearn.metrics import r2_score, mean_squared_error
-from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 import xgboost as xgb
 from xgboost import XGBRegressor
