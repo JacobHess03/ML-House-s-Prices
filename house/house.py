@@ -27,7 +27,7 @@ from features import feature     # Assicurati che questo file esista e contenga 
 
 
 # Assicurati che il file sia nella stessa directory dello script o specifica il percorso completo
-file_path = 'house/house_data.csv' # Ho accorciato il percorso per comodità, adattalo se necessario
+file_path = r'house_data.csv' # Ho accorciato il percorso per comodità, adattalo se necessario
 try:
     df = pd.read_csv(file_path)
 except FileNotFoundError:
@@ -76,6 +76,20 @@ r2_linear = r2_score(y_test, y_pred_linear)
 # Stampa le metriche
 print(f"R2 Score (Linear Regression): {r2_linear:.4f}")
 
+# --- Linear Regression ---
+mse_linear = mean_squared_error(y_test, y_pred_linear)  
+rmse_linear = np.sqrt(mse_linear)
+print(f"RMSE (Linear Regression): {rmse_linear:.4f}")
+
+# 1. Normalizzazione su range
+y_range = y_test.max() - y_test.min()
+nrmse_range = rmse_linear / y_range
+print(f"NRMSE rispetto al range: {nrmse_range:.4f}")
+
+# 2. Normalizzazione su media
+y_mean = y_test.mean()
+nrmse_mean = rmse_linear / y_mean
+print(f"NRMSE rispetto alla media (CV RMSE): {nrmse_mean:.4f}")
 
 # 2. Modello Ridge (Regolarizzazione L2)
 print("\n--- Modello: Ridge ---")
@@ -96,6 +110,24 @@ print(f"R2 Score (Ridge Regression, alpha=1.0): {r2_ridge:.4f}")
 
 
 
+
+
+
+
+# --- Ridge Regression ---
+mse_ridge = mean_squared_error(y_test, y_pred_ridge)
+rmse_ridge = np.sqrt(mse_ridge)
+print(f"RMSE (Ridge Regression, alpha=1.0): {rmse_ridge:.4f}")
+# 1. Normalizzazione su range
+y_range = y_test.max() - y_test.min()
+nrmse_range = rmse_ridge / y_range
+print(f"NRMSE rispetto al range: {nrmse_range:.4f}")
+
+# 2. Normalizzazione su media
+y_mean = y_test.mean()
+nrmse_mean = rmse_ridge / y_mean
+print(f"NRMSE rispetto alla media (CV RMSE): {nrmse_mean:.4f}")
+
 # 3. Modello Lasso (Regolarizzazione L1)
 print("\n--- Modello: Lasso ---")
 # alpha è il parametro di regolarizzazione.
@@ -113,6 +145,23 @@ r2_lasso = r2_score(y_test, y_pred_lasso)
 
 # Stampa le metriche
 print(f"R2 Score (Lasso Regression, alpha=1.0): {r2_lasso:.4f}")
+
+# --- Lasso Regression ---
+mse_lasso = mean_squared_error(y_test, y_pred_lasso)
+rmse_lasso = np.sqrt(mse_lasso)
+print(f"RMSE (Lasso Regression, alpha=1.0): {rmse_lasso:.4f}")
+
+# 1. Normalizzazione su range
+y_range = y_test.max() - y_test.min()
+nrmse_range = rmse_lasso / y_range
+print(f"NRMSE rispetto al range: {nrmse_range:.4f}")
+
+# 2. Normalizzazione su media
+y_mean = y_test.mean()
+nrmse_mean = rmse_lasso / y_mean
+print(f"NRMSE rispetto alla media (CV RMSE): {nrmse_mean:.4f}")
+
+
 
 
 
