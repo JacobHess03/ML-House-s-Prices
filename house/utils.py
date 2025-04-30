@@ -9,6 +9,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 import statsmodels.api as sm
+import xgboost as xgb
+from sklearn.datasets import load_diabetes
 
 #  Creazione di un dataset sintetico con 4 feature e una variabile target
 np.random.seed(42)
@@ -222,3 +224,65 @@ def elimina_vif(X):
     # Ora, aggiorniamo X con le features selezionate per le fasi successive
     X_selected = X_vif_filtered
     return X_selected
+
+
+
+
+import numpy as np
+import xgboost as xgb
+from sklearn.datasets import load_diabetes
+
+# 1) Carica il dataset
+diabetes = load_diabetes()
+X, y = diabetes.data, diabetes.target
+
+# 2) Crea il DMatrix
+dtrain = xgb.DMatrix(X, label=y, missing=np.nan)
+
+# 3) Parametri fissi
+params = {
+    'objective': 'reg:squarederror',
+    'eta': 0.1,
+    'max_depth': 4,
+    # 'alpha' e 'lambda' (reg_alpha/reg_lambda) verranno sovrascritti nel loop
+}
+
+# 4) Griglia per reg_alpha e reg_lambda
+param_grid = {
+    'alpha':    [0, 0.1, 0.5, 1],
+    'reg_lambda':[0, 0.1, 0.5, 1]
+}
+
+best_params = {}
+best_rmse = float("inf")
+
+# 5) Grid Search manuale
+for alpha in param_grid['alpha']:
+    for reg_lambda in param_grid['reg_lambda']:
+        # imposta i parametri correnti
+        params['alpha']      = alpha
+        params['lambda']     = reg_lambda   # in XGBoost 'lambda' mappa a reg_lambda
+        # oppure esplicitamente:
+        # params['reg_alpha']   = alpha
+        # params['reg_lambda']  = reg_lambda
+
+        cv_results = xgb.cv(
+            params,
+            dtrain,
+            num_boost_round=100,
+            nfold=5,
+            metrics="rmse",
+            early_stopping_rounds=10,
+            seed=42,
+            verbose_eval=False
+        )
+
+        mean_rmse = cv_results['test-rmse-mean'].min()
+        print(f"alpha={alpha}, reg_lambda={reg_lambda} → RMSE: {mean_rmse:.4f}")
+
+        if mean_rmse < best_rmse:
+            best_rmse   = mean_rmse
+            best_params = {'alpha': alpha, 'reg_lambda': reg_lambda}
+
+# 6) Risultati
+print(f"\nMigliori parametri: {best_params} con RMSE: {best_rmse:.4f}")
