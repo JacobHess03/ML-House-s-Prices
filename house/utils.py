@@ -8,6 +8,7 @@ from sklearn.feature_selection import SelectKBest, f_regression, RFE
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
 from statsmodels.stats.outliers_influence import variance_inflation_factor
+import statsmodels.api as sm
 
 #  Creazione di un dataset sintetico con 4 feature e una variabile target
 np.random.seed(42)
@@ -86,3 +87,138 @@ results = {
     "R^2 Polinomiale": r2_poly,
 }
 results
+
+
+
+def elimina_variabili_vif_pvalue(X_train, y_train, vif_threshold=10.0, pvalue_threshold=0.05):
+    """
+    Rimuove variabili da X_train basandosi su VIF e p-value.
+    
+    - Elimina solo variabili con VIF > soglia e p-value > soglia.
+    - Ricalcola VIF e p-value dopo ogni eliminazione.
+    """
+    
+    # Copia dei dati per lavorare in sicurezza
+    X_current = X_train.copy()
+    
+    # Aggiungi costante per statsmodels
+    X_const = sm.add_constant(X_current)
+    
+    while True:
+        # Modello OLS per calcolare p-value
+        model = sm.OLS(y_train, X_const).fit()
+        pvalues = model.pvalues.drop('const')  # escludi l'intercetta
+        
+        # Calcolo VIF
+        vif = pd.DataFrame()
+        vif["Feature"] = X_current.columns
+        vif["VIF"] = [variance_inflation_factor(X_current.values, i) for i in range(X_current.shape[1])]
+        
+        # Unisco p-value e VIF
+        stats = vif.copy()
+        stats["p-value"] = pvalues.values
+        
+        # Trova candidati da eliminare: VIF alto + p-value alto
+        candidates = stats[(stats["VIF"] > vif_threshold) & (stats["p-value"] > pvalue_threshold)]
+        
+        if candidates.empty:
+            print("\nNessuna variabile da eliminare. Selezione completata.")
+            break
+        
+        # Elimina la variabile con il VIF piÃ¹ alto tra i candidati
+        worst_feature = candidates.sort_values(by="VIF", ascending=False)["Feature"].iloc[0]
+        print(f"Rimuovo '{worst_feature}' con VIF = {candidates.loc[candidates['Feature'] == worst_feature, 'VIF'].values[0]:.2f} "
+              f"e p-value = {candidates.loc[candidates['Feature'] == worst_feature, 'p-value'].values[0]:.4f}")
+        
+        # Aggiorna i dati
+        X_current = X_current.drop(columns=[worst_feature])
+        X_const = sm.add_constant(X_current)
+    
+    print("\nFeature finali selezionate:")
+    print(X_current.columns.tolist())
+    
+    return X_current
+
+def elimina_vif(X):
+    
+    # =============================================================================
+    # Rimozione Iterativa della Multicollinearità con VIF
+    # =============================================================================
+    # Creiamo una copia di X su cui lavoreremo per rimuovere le feature
+    X_vif_filtered = X.copy()
+
+    # Definiamo la soglia VIF
+    vif_threshold = 10 # Una soglia comune, puoi sperimentare con 5 o 10
+
+    print(f"\n========================= Rimozione Iterativa Feature con VIF > {vif_threshold} =========================")
+
+    # Inizializziamo variabili per il ciclo
+    max_vif = float('inf') # Partiamo con un valore alto per entrare nel ciclo
+    iteration = 0
+
+    
+    
+    # Eseguiamo il ciclo finché il VIF massimo è sopra la soglia E ci sono più di 1 feature
+    while max_vif > vif_threshold and X_vif_filtered.shape[1] > 1:
+        iteration += 1
+        print(f"\n--- Iterazione {iteration} ---")
+        print(f"Features rimanenti: {X_vif_filtered.shape[1]}")
+
+        # Calcola VIF per l'attuale set di feature
+        vif_data = pd.DataFrame()
+        vif_data["Feature"] = X_vif_filtered.columns
+
+        # Converti il DataFrame corrente in un array numpy per variance_inflation_factor
+        X_np = X_vif_filtered.values
+
+        vif_list = []
+        # Itera sugli indici delle colonne dell'array numpy
+        for i in range(X_np.shape[1]):
+            # Gestisce colonne con un solo valore unico (la varianza è zero, VIF infinito)
+            if np.unique(X_np[:, i]).size <= 1:
+                vif = float('inf') # Assegna infinito
+            else:
+                try:
+                    # Calcola il VIF per la colonna i rispetto a tutte le altre colonne in X_np
+                    vif = variance_inflation_factor(X_np, i)
+                except Exception as e:
+                    # Cattura altri possibili errori nel calcolo VIF
+                    print(f"Errore nel calcolo VIF per colonna '{X_vif_filtered.columns[i]}' (indice {i}): {e}")
+                    vif = np.nan # Assegna NaN in caso di errore
+
+            vif_list.append(vif)
+
+        vif_data["VIF"] = vif_list
+
+        # Rimuovi righe con VIF NaN prima di trovare il massimo, per sicurezza
+        vif_data = vif_data.dropna(subset=["VIF"])
+
+        # Trova la feature con il VIF più alto nell'attuale set di feature
+        if not vif_data.empty:
+            # Ordina e prendi la prima riga (quella con il VIF massimo)
+            max_vif_row = vif_data.sort_values(by="VIF", ascending=False).iloc[0]
+            max_vif = max_vif_row["VIF"]
+            feature_to_remove = max_vif_row["Feature"]
+
+            # Se il VIF massimo è sopra la soglia, rimuovi quella feature
+            if max_vif > vif_threshold:
+                print(f"  - VIF Max: {max_vif:.2f} (Feature: '{feature_to_remove}'). Rimuovo...")
+                # Rimuovi la colonna dal DataFrame X_vif_filtered
+                X_vif_filtered = X_vif_filtered.drop(columns=[feature_to_remove])
+            else:
+                # Se il VIF massimo è sotto la soglia, esci dal ciclo
+                print(f"  - VIF Max ({max_vif:.2f}) è sotto la soglia ({vif_threshold}). Processo terminato.")
+
+        else: # Questo caso si verifica se rimangono 0 o 1 feature (gestito dalla condizione del while) o se tutti i VIF sono NaN
+            print("  - Nessun dato VIF valido da analizzare o solo una feature rimasta. Processo terminato.")
+            max_vif = 0 # Imposta max_vif a 0 per uscire dal ciclo
+
+    # Una volta terminato il ciclo, X_vif_filtered contiene solo le feature con VIF <= threshold
+    print("\n========================= Fine Rimozione Iterativa VIF =========================")
+    print(f"Processo di rimozione VIF terminato.")
+    print(f"Features finali selezionate ({X_vif_filtered.shape[1]}):")
+    print(X_vif_filtered.columns.tolist())
+
+    # Ora, aggiorniamo X con le features selezionate per le fasi successive
+    X_selected = X_vif_filtered
+    return X_selected
